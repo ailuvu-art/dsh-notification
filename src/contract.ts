@@ -14,6 +14,15 @@ export type NotificationReason = 'completed' | 'error' | 'aborted' | 'blocked' |
 /** A live user interaction currently blocking a session. */
 export type PendingKind = 'approval' | 'question' | 'plan-review'
 
+/** An unresolved failure retained until a later successful completion. */
+export interface NotificationAttention {
+  readonly turn: number
+  readonly reason: 'error' | 'interrupted'
+  readonly endedAt: number
+  readonly message: string
+  readonly code?: string
+}
+
 /**
  * The host projection's wire payload: a bounded summary of the session's last
  * completed turn. The client reads this key off the session list's
@@ -28,6 +37,12 @@ export interface NotificationProjectionValue {
   readonly body: string
   /** Tool names the turn called, deduplicated in first-seen order. */
   readonly tools: readonly string[]
+  /** Event timestamp and bounded failure facts; optional for older hosts. */
+  readonly endedAt?: number
+  readonly message?: string
+  readonly code?: string
+  /** Omitted by older hosts; null means no unresolved failure. */
+  readonly attention?: NotificationAttention | null
 }
 
 /** Persistable Host fold state for the notification projection. */
@@ -36,6 +51,7 @@ export interface NotificationProjectionState {
   readonly openTurn: { readonly turn: number; readonly text: string; readonly tools: string[] } | null
   /** The last completed turn's summary; null before the first completion. */
   readonly last: NotificationProjectionValue | null
+  readonly attention: NotificationAttention | null
 }
 
 /** One include/exclude keyword rule over a turn's title, reply text, and tool names. */

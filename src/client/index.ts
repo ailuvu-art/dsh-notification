@@ -8,6 +8,11 @@
  * settings section and the locale dictionaries. No harness allowlist is touched.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import { createElement, useSyncExternalStore } from 'react'
+import { AttentionInbox } from './AttentionInbox.tsx'
+import { ATTENTION_STORAGE_KEY, createAttentionStore } from './attention-store.ts'
+import { reconcileAttention } from './attention.ts'
+import { startAttentionRefresh } from './attention-refresh.ts'
 import type { SnapshotStore } from './snapshot-store.ts'
 // Type-only: the ctx.locale Context merge.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -34,6 +39,7 @@ export const inject = ['sessions', 'slots', 'locale']
 
 /** The slice of the sessions service this plugin reads. */
 interface SessionsListFace {
+  refreshProjections?(id: string): Promise<void>
   readonly list: { getSnapshot(): NotificationSessionListState; subscribe(listener: () => void): () => void }
 }
 
@@ -95,6 +101,48 @@ export function apply(ctx: ClientContext): void {
   const uiSession = ctx.get('uiSession') as unknown as UiSessionFace | undefined
   const slots = (ctx as unknown as { slots: SlotsFace }).slots
   const settings: SnapshotStore<NotificationSettings> = createNotificationSettingsStore()
+  // A browser acknowledgement never changes the durable Session log.
+  let storage: Storage | undefined
+  try { storage = window.localStorage } catch { /* storage may be denied */ }
+  const attention = createAttentionStore(storage)
+  ctx.effect(() => {
+    let stop = startAttentionRefresh(sessions)
+    const off = ctx.on('connection/reset', () => { stop(); stop = startAttentionRefresh(sessions) })
+    return () => { off(); stop() }
+  }, 'dsh-notification: historical attention discovery')
+  ctx.effect(() => {
+    const sync = (event: StorageEvent) => { if (event.key === ATTENTION_STORAGE_KEY || event.key === null) attention.sync() }
+    window.addEventListener('storage', sync)
+    return () => window.removeEventListener('storage', sync)
+  }, 'dsh-notification: review synchronization')
+  slots.inject('sidebar.footer.action', () => slots.register({
+    name: 'sidebar.footer.action',
+    id: 'notification-attention',
+    order: 50,
+  }, ({ wide }: { wide: boolean }) => {
+    const list = useSyncExternalStore(sessions.list.subscribe, sessions.list.getSnapshot)
+    const acknowledged = useSyncExternalStore(attention.subscribe, attention.getSnapshot)
+    const rows = list.ids.flatMap(id => {
+      const row = list.byId[id]
+      return row === undefined ? [] : [{ ...row, sessionId: id }]
+    })
+    const entries = [...reconcileAttention(rows, acknowledged)]
+      .sort((a, b) => b.endedAt - a.endedAt || a.sessionId.localeCompare(b.sessionId)).map(entry => ({
+      ...entry,
+      title: list.byId[entry.sessionId]?.displayTitle || list.byId[entry.sessionId]?.title || '',
+    }))
+    return createElement(AttentionInbox, {
+      wide, entries, t,
+      acknowledge: (id: string, turn?: number) => {
+        return turn !== undefined && attention.acknowledge(id, turn)
+      },
+      openSession: (id: string) => {
+        const workspace = ctx.get('uiWorkspace') as unknown as { openSession(id: string): void } | undefined
+        if (workspace === undefined) throw new Error('Session navigation unavailable')
+        workspace.openSession(id)
+      },
+    })
+  }))
   const set = (patch: Partial<NotificationSettings>): void => {
     settings.update(draft => { Object.assign(draft, patch) })
   }

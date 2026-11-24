@@ -5,6 +5,21 @@
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export declare const zh: {
     nav: string;
+    'attention.title': string;
+    'attention.trigger': string;
+    'attention.description': string;
+    'attention.reviewFailed': string;
+    'attention.reviewed': string;
+    'attention.interruptedMessage': string;
+    'attention.close': string;
+    'attention.review': string;
+    'attention.empty': string;
+    'attention.reason.error': string;
+    'attention.reason.interrupted': string;
+    'attention.sessionFallback': string;
+    'attention.unknownTime': string;
+    'attention.noMessage': string;
+    'attention.openFailed': string;
     'settings.title': string;
     'settings.subtitle': string;
     'settings.enabled': string;
@@ -70,6 +85,21 @@ export type NotificationKey = keyof typeof zh;
 /** English dictionary, checked complete against the zh key set. */
 export declare const en: {
     nav: string;
+    'attention.title': string;
+    'attention.trigger': string;
+    'attention.description': string;
+    'attention.reviewFailed': string;
+    'attention.reviewed': string;
+    'attention.interruptedMessage': string;
+    'attention.close': string;
+    'attention.review': string;
+    'attention.empty': string;
+    'attention.reason.error': string;
+    'attention.reason.interrupted': string;
+    'attention.sessionFallback': string;
+    'attention.unknownTime': string;
+    'attention.noMessage': string;
+    'attention.openFailed': string;
     'settings.title': string;
     'settings.subtitle': string;
     'settings.enabled': string;
