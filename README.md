@@ -23,6 +23,12 @@ Version `0.1.4` supports both the 0.1.1 and 0.1.2 Harness client package layouts
 
 The settings section lives under **Settings > Notifications**.
 
+## Needs attention inbox
+
+The **Needs attention** button above Settings in the sidebar opens a cross-workspace inbox of failed and interrupted sessions, newest first. Each item shows the session title, failure time, and a bounded error message/code. Opening a session does **not** mark it reviewed. Choose **Mark reviewed** to dismiss that failure; a newer failure appears again. A later successful turn automatically resolves the session. Stopping a retry, hitting a limit, or waiting for approval does not erase a previous unresolved failure.
+
+Failures are derived from the durable session log, so they can be recovered after reload, including historical failures. The client requests missing or outdated projections with at most four concurrent reads, without opening conversations; failed reads retry after reconnect. On older hosts without exact projection reads, discovery is limited to available cached values. Review acknowledgements persist in this browser's localStorage (not across browsers/devices); if saving fails, the item stays visible and can be retried. Subagents are excluded. The inbox is independent of desktop-notification permission, keyword rules, and the notifications master switch. Archived or inaccessible sessions may need to be restored before opening. Requires the current Harness sidebar footer slot and workspace navigation service. After upgrading, restart the server and refresh the page to load both the new projection and client bundle.
+
 ## Settings
 
 | Setting | Default | Effect |

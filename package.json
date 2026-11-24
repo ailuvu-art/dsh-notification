@@ -14,10 +14,6 @@
       "types": "./lib/types/client/index.d.ts",
       "default": "./lib/client.js"
     },
-    "./invariant": {
-      "types": "./lib/types/invariant.d.ts",
-      "default": "./lib/invariant.js"
-    },
     "./package.json": "./package.json"
   },
   "dsh": {
@@ -29,6 +25,8 @@
       "inject": [
         "@deepseek-ai/dsh-client-ui-slots",
         "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-workspace",
         "@deepseek-ai/dsh-client-locale"
       ]
     }
@@ -51,7 +49,6 @@
     "@deepseek-ai/cordis": "*",
     "@deepseek-ai/dsh-session": "*",
     "@deepseek-ai/dsh-session-projection": "*",
-    "@deepseek-ai/dsh-invariants": "*",
     "@deepseek-ai/dsh-client-runtime": "*",
     "@deepseek-ai/dsh-client-store": "*",
     "@deepseek-ai/dsh-client-ui-slots": "*",
@@ -67,9 +64,6 @@
       "optional": true
     },
     "@deepseek-ai/dsh-session-projection": {
-      "optional": true
-    },
-    "@deepseek-ai/dsh-invariants": {
       "optional": true
     },
     "@deepseek-ai/dsh-client-runtime": {
@@ -95,7 +89,7 @@
     "@deepseek-ai/cordis": "link:../dsh/vendor/cordis",
     "@deepseek-ai/dsh-session": "link:../dsh/packages/core/session",
     "@deepseek-ai/dsh-session-projection": "link:../dsh/packages/session/session-projection",
-    "@deepseek-ai/dsh-invariants": "link:../dsh/packages/runtime-diagnostics/invariants",
+
     "@deepseek-ai/dsh-client-store": "link:../dsh/packages/client/store",
     "@deepseek-ai/dsh-client-ui-slots": "link:../dsh/packages/client/ui-slots",
     "@deepseek-ai/dsh-client-ui-settings": "link:../dsh/packages/client/ui-settings",
@@ -115,6 +109,6 @@
     "@deepseek-ai/dsh-typert-registry": "link:../dsh/packages/typert/registry"
   },
   "dependencies": {
-    "zod": "^4.4.3"
+    "zod": "4.6.6"
   }
 }

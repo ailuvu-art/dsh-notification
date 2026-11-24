@@ -35,7 +35,18 @@ describe('dsh-notification host composition', () => {
     session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
 
     const registry = ctx.get('sessionProjections') as SessionProjectionRegistry
-    expect(registry.snapshot(session).values.notification).toEqual({ turn: 1, reason: 'completed', body: 'deploy done', tools: ['bash'] })
+    expect(registry.snapshot(session).values.notification).toMatchObject({ turn: 1, reason: 'completed', body: 'deploy done', tools: ['bash'], endedAt: expect.any(Number), attention: null })
+
+    session.append('turn/start', { turn: 2 })
+    session.append('turn/end', { turn: 2, reason: { kind: 'error', error: { message: 'Provider unavailable', code: 'UNKNOWN' } } })
+    const failure = registry.snapshot(session).values.notification?.attention
+    expect(failure).toEqual({ turn: 2, reason: 'error', endedAt: expect.any(Number), message: 'Provider unavailable', code: 'UNKNOWN' })
+    session.append('turn/start', { turn: 3 })
+    session.append('turn/end', { turn: 3, reason: { kind: 'blocked' } })
+    expect(registry.snapshot(session).values.notification?.attention).toEqual(failure)
+    session.append('turn/start', { turn: 4 })
+    session.append('turn/end', { turn: 4, reason: { kind: 'completed' } })
+    expect(registry.snapshot(session).values.notification?.attention).toBeNull()
 
     await fiber.dispose()
     expect(registry.snapshot(session).values.notification).toBeUndefined()

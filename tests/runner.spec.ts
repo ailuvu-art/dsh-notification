@@ -103,8 +103,12 @@ describe('projectionAdvance', () => {
     expect(projectionAdvance(6, { turn: 6, reason: 'completed', body: 'new', tools: [] })).toEqual({ nextTurn: 6, fresh: false })
   })
 
-  it('treats an absent projection as turn 0', () => {
-    expect(projectionAdvance(undefined, undefined)).toEqual({ nextTurn: 0, fresh: false })
-    expect(projectionAdvance(0, { turn: 1, reason: 'completed', body: 'first', tools: [] })).toEqual({ nextTurn: 1, fresh: true })
+  it('does not turn delayed historical hydration into a completion notification', () => {
+    const missing = projectionAdvance(undefined, undefined)
+    expect(missing).toEqual({ nextTurn: undefined, fresh: false })
+    const hydrated = projectionAdvance(missing.nextTurn, { turn: 5, reason: 'error', body: 'old', tools: [] })
+    expect(hydrated).toEqual({ nextTurn: 5, fresh: false })
+    expect(projectionAdvance(hydrated.nextTurn, { turn: 6, reason: 'completed', body: 'new', tools: [] }).fresh).toBe(true)
+    expect(projectionAdvance(5, undefined)).toEqual({ nextTurn: 5, fresh: false })
   })
 })

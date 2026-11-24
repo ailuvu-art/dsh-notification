@@ -31,7 +31,7 @@ function config(overrides: Partial<ResolvedConfig> = {}): ResolvedConfig {
 }
 
 function fold(events: readonly SessionEvent[], cfg: ResolvedConfig): NotificationProjectionValue {
-  let state: NotificationProjectionState = { openTurn: null, last: null }
+  let state: NotificationProjectionState = { openTurn: null, last: null, attention: null }
   for (const event of events) state = applyProjectionEvent(state, event, cfg.maxBodyChars)
   return notificationProjection(cfg).wire!.view(state)
 }
@@ -57,7 +57,7 @@ describe('applyProjectionEvent', () => {
       toolCall(1, 'edit'),
       evt('turn/end', { turn: 1, reason: { kind: 'completed' } }),
     ], config())
-    expect(value).toEqual({ turn: 1, reason: 'completed', body: 'deploy done', tools: ['bash', 'edit'] })
+    expect(value).toEqual({ turn: 1, reason: 'completed', body: 'deploy done', tools: ['bash', 'edit'], endedAt: 0, attention: null })
   })
 
   it('reports the empty view before any completion', () => {
@@ -91,11 +91,32 @@ describe('applyProjectionEvent', () => {
     expect(value.reason).toBe('blocked')
   })
 
+  it('retains bounded failure facts through other endings and clears on success', () => {
+    const failure = { ...evt('turn/end', { turn: 1, reason: { kind: 'error', error: { message: '123456789', code: 'UNKNOWN' } } }), time: 1234 }
+    const history: SessionEvent[] = [evt('turn/start', { turn: 1 }), failure]
+    const failed = fold(history, config({ maxBodyChars: 5 }))
+    expect(failed).toMatchObject({ endedAt: 1234, message: '1234…', code: 'UNKN…', attention: {
+      turn: 1, reason: 'error', endedAt: 1234, message: '1234…', code: 'UNKN…',
+    } })
+    history.push(evt('turn/start', { turn: 2 }), evt('turn/end', { turn: 2, reason: { kind: 'aborted', reason: { kind: 'legacy' } } }),
+      evt('turn/start', { turn: 3 }), evt('turn/end', { turn: 3, reason: { kind: 'blocked' } }))
+    expect(fold(history, config({ maxBodyChars: 5 })).attention).toEqual(failed.attention)
+    history.push(evt('turn/start', { turn: 4 }), evt('turn/end', { turn: 4, reason: { kind: 'completed' } }))
+    expect(fold(history, config()).attention).toBeNull()
+  })
+
+  it('projects crash interruption as attention with its event timestamp', () => {
+    const value = fold([evt('turn/start', { turn: 1 }),
+      { ...evt('turn/end', { turn: 1, reason: { kind: 'interrupted' } }), time: 99 }], config())
+    expect(value.attention).toEqual({ turn: 1, reason: 'interrupted', endedAt: 99,
+      message: 'The turn was interrupted before it completed.' })
+  })
+
   it('carries a stateVersion and key on the definition', () => {
     const def = notificationProjection(config())
     expect(def.key).toBe('notification')
-    expect(def.stateVersion).toBe(1)
-    expect(def.stateSchema.parse({ openTurn: null, last: null })).toEqual({ openTurn: null, last: null })
+    expect(def.stateVersion).toBe(2)
+    expect(def.stateSchema.parse({ openTurn: null, last: null, attention: null })).toEqual({ openTurn: null, last: null, attention: null })
     expect(def.wire?.viewSchema.parse(EMPTY_PROJECTION)).toEqual(EMPTY_PROJECTION)
   })
 })

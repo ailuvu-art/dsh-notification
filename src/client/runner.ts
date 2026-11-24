@@ -18,14 +18,15 @@ import { notificationTag, pendingNotificationTag } from './notifier.ts'
  * the status frame and the projection frame, so the notification body is
  * always the turn that just completed.
  * @param prevTurn - the turn last observed for the session (undefined = seed).
- * @param projection - the current host projection value (absent = turn 0).
+ * @param projection - the current host value; absence cannot establish a baseline.
  * @returns the next observed turn and whether it advanced past the previous.
  */
 export function projectionAdvance(
   prevTurn: number | undefined,
   projection: NotificationProjectionValue | undefined,
-): { nextTurn: number; fresh: boolean } {
-  const turn = projection?.turn ?? 0
+): { nextTurn: number | undefined; fresh: boolean } {
+  if (projection === undefined) return { nextTurn: prevTurn, fresh: false }
+  const turn = projection.turn
   return { nextTurn: turn, fresh: prevTurn !== undefined && turn > prevTurn }
 }
 

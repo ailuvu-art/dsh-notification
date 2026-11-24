@@ -20,6 +20,7 @@ export const EMPTY_PROJECTION: NotificationProjectionValue = Object.freeze({
   reason: '',
   body: '',
   tools: Object.freeze([]) as readonly string[],
+  attention: null,
 })
 
 /**
@@ -70,13 +71,26 @@ export function applyProjectionEvent(
     case 'turn/end': {
       const open = state.openTurn
       if (open === null || open.turn !== event.data.turn) return state
+      const reason = event.data.reason
+      const message = reason.kind === 'error'
+        ? boundText(reason.error.message, maxChars)
+        : reason.kind === 'interrupted' ? boundText('The turn was interrupted before it completed.', maxChars) : ''
+      const code = reason.kind === 'error' ? boundText(reason.error.code, maxChars) : undefined
+      const attention = reason.kind === 'error' || reason.kind === 'interrupted'
+        ? { turn: event.data.turn, reason: reason.kind, endedAt: event.time, message, ...(code === undefined ? {} : { code }) }
+        : reason.kind === 'completed' ? null : state.attention
       return {
         openTurn: null,
+        attention,
         last: {
           turn: event.data.turn,
-          reason: event.data.reason.kind,
+          reason: reason.kind,
           body: open.text.trim(),
           tools: open.tools,
+          endedAt: event.time,
+          ...(message ? { message } : {}),
+          ...(code === undefined ? {} : { code }),
+          attention,
         },
       }
     }
@@ -94,12 +108,23 @@ export function notificationProjection(config: ResolvedConfig):
 Omit<ProjectionDefinition<'notification', NotificationProjectionState>, 'wire'> & {
   wire: NonNullable<ProjectionDefinition<'notification', NotificationProjectionState>['wire']>
 } {
+  const attentionSchema = z.object({
+    turn: z.number().int().nonnegative(),
+    reason: z.enum(['error', 'interrupted']),
+    endedAt: z.number(),
+    message: z.string(),
+    code: z.string().optional(),
+  }).strict()
   const viewSchema = z.object({
     turn: z.number().int().nonnegative(),
     reason: z.string(),
     body: z.string(),
     tools: z.array(z.string()),
-  }).strict()
+    endedAt: z.number().optional(),
+    message: z.string().optional(),
+    code: z.string().optional(),
+    attention: attentionSchema.nullable().optional(),
+  }).strict() as z.ZodType<NotificationProjectionValue>
   return {
     key: 'notification',
     stateSchema: z.object({
@@ -109,13 +134,14 @@ Omit<ProjectionDefinition<'notification', NotificationProjectionState>, 'wire'> 
         tools: z.array(z.string()),
       }).strict().nullable(),
       last: viewSchema.nullable(),
-    }).strict(),
-    init: () => ({ openTurn: null, last: null }),
+      attention: attentionSchema.nullable(),
+    }).strict() as z.ZodType<NotificationProjectionState>,
+    init: () => ({ openTurn: null, last: null, attention: null }),
     apply: (state, event) => applyProjectionEvent(state, event, config.maxBodyChars),
     wire: {
       viewSchema,
       view: state => state.last ?? EMPTY_PROJECTION,
     },
-    stateVersion: 1,
+    stateVersion: 2,
   }
 }
