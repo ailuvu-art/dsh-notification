@@ -187,7 +187,7 @@ export function apply(ctx: ClientContext): void {
         if (summary === undefined) continue
         const projection = summary.projectionValues?.notification
         const { nextTurn, fresh } = projectionAdvance(observedTurn.get(id), projection)
-        observedTurn.set(id, nextTurn)
+        if (nextTurn !== undefined) observedTurn.set(id, nextTurn)
         if (!fresh) continue
         const plan = notificationFor(summary.id, summary.origin, summary.title, projection, current)
         if (plan === null) {

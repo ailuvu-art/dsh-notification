@@ -15,11 +15,11 @@ import type { NotificationProjectionValue, NotificationReason, NotificationSetti
  * the status frame and the projection frame, so the notification body is
  * always the turn that just completed.
  * @param prevTurn - the turn last observed for the session (undefined = seed).
- * @param projection - the current host projection value (absent = turn 0).
+ * @param projection - the current host value; absence cannot establish a baseline.
  * @returns the next observed turn and whether it advanced past the previous.
  */
 export declare function projectionAdvance(prevTurn: number | undefined, projection: NotificationProjectionValue | undefined): {
-    nextTurn: number;
+    nextTurn: number | undefined;
     fresh: boolean;
 };
 /** A decided notification ready to surface. */
