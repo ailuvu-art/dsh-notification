@@ -51,18 +51,6 @@ await build({
 })
 
 await build({
-  entryPoints: ['src/invariant.ts'],
-  outfile: 'lib/invariant.js',
-  bundle: true,
-  format: 'esm',
-  platform: 'node',
-  target: ['node22'],
-  sourcemap: true,
-  external: dshExternal,
-  logLevel: 'info',
-})
-
-await build({
   entryPoints: ['src/client/index.ts'],
   outfile: 'lib/client.js',
   bundle: true,
